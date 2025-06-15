@@ -3,14 +3,12 @@ using System.IO;
 using System.Xml.Serialization;
 using System.Collections.Generic;
 
-
 [Serializable]
 public class TextFile
 {
     public string FileName { get; set; }
     public string Content { get; set; }
 
-    // Сериализация в XML
     public void SaveAsXml(string path)
     {
         XmlSerializer serializer = new XmlSerializer(typeof(TextFile));
@@ -20,7 +18,6 @@ public class TextFile
         }
     }
 
-    // Десериализация из XML
     public static TextFile LoadFromXml(string path)
     {
         XmlSerializer serializer = new XmlSerializer(typeof(TextFile));
@@ -30,7 +27,6 @@ public class TextFile
         }
     }
 
-    // Сериализация в бинарный формат
     public void SaveAsBinary(string path)
     {
         using (FileStream stream = new FileStream(path, FileMode.Create))
@@ -41,7 +37,6 @@ public class TextFile
         }
     }
 
-    // Десериализация из бинарного формата
     public static TextFile LoadFromBinary(string path)
     {
         using (FileStream stream = new FileStream(path, FileMode.Open))
@@ -56,6 +51,7 @@ public class TextFile
         }
     }
 }
+
 public class FileSearcher
 {
     public List<string> SearchByKeyword(string directory, string keyword)
@@ -72,6 +68,7 @@ public class FileSearcher
         return foundFiles;
     }
 }
+
 public class TextFileMemento
 {
     public string Content { get; }
@@ -95,7 +92,6 @@ public class TextFileEditor
 
     public void Edit(string newContent)
     {
-        // Сохраняем текущее состояние
         _history.Push(new TextFileMemento(_file.Content));
         _file.Content = newContent;
     }
@@ -114,6 +110,7 @@ public class TextFileEditor
         return _file;
     }
 }
+
 class Program
 {
     static void Main(string[] args)
@@ -121,50 +118,68 @@ class Program
         Console.WriteLine("Введите имя файла:");
         string fileName = Console.ReadLine();
         TextFile textFile = new TextFile { FileName = fileName, Content = "" };
-
         TextFileEditor editor = new TextFileEditor(textFile);
 
         while (true)
         {
-            Console.WriteLine("Выберите действие: 1 - редактировать, 2 - сохранить, 3 - загрузить, 4 - undo, 5 - выйти");
+            Console.WriteLine("\nВыберите действие: ");
+            Console.WriteLine("1 - редактировать");
+            Console.WriteLine("2 - сохранить");
+            Console.WriteLine("3 - загрузить");
+            Console.WriteLine("4 - отменить действие");
+            Console.WriteLine("5 - выйти");
             string choice = Console.ReadLine();
 
-            if (choice == "1")
+            try
             {
-                Console.WriteLine("Введите новый текст:");
-                string newContent = Console.ReadLine();
-                editor.Edit(newContent);
-                Console.WriteLine("Текущий текст: " + editor.GetFile().Content);
-            }
-            else if (choice == "2")
-            {
-                Console.WriteLine("Какой формат? 1 - XML, 2 - бинарный");
-                string format = Console.ReadLine();
-                if (format == "1")
+                switch (choice)
                 {
-                    textFile.SaveAsXml(fileName + ".xml");
+                    case "1":
+                        Console.WriteLine("Введите новый текст:");
+                        string newContent = Console.ReadLine();
+                        editor.Edit(newContent);
+                        Console.WriteLine("Текущий текст: " + editor.GetFile().Content);
+                        break;
+                    case "2":
+                        Console.WriteLine("Какой формат? 1 - XML, 2 - бинарный");
+                        string format = Console.ReadLine();
+                        if (format == "1")
+                        {
+                            textFile.SaveAsXml(fileName + ".xml");
+                        }
+                        else
+                        {
+                            textFile.SaveAsBinary(fileName + ".bin");
+                        }
+                        break;
+                    case "3":
+                        Console.WriteLine("Введите имя файла для загрузки:");
+                        string loadFileName = Console.ReadLine();
+                        if (File.Exists(loadFileName))
+                        {
+                            textFile = TextFile.LoadFromXml(loadFileName);                      // Изменить на бинарную загрузку при необходимости
+                            editor = new TextFileEditor(textFile);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Файл \"{loadFileName}\" не найден.");
+                        }
+                        break;
+                    case "4":
+                        editor.Undo();
+                        Console.WriteLine("Изменения отменены. Текущий текст: " + editor.GetFile().Content);
+                        break;
+                    case "5":
+                        return;                                                                 // Выход из программы
+                    default:
+                        Console.WriteLine("Неверный выбор. Пожалуйста, повторите.");
+                        break;
                 }
-                else
-                {
-                    textFile.SaveAsBinary(fileName + ".bin");
-                }
             }
-            else if (choice == "3")
+            catch (Exception ex)
             {
-                Console.WriteLine("Введите имя файла для загрузки:");
-                string loadFileName = Console.ReadLine();
-                textFile = TextFile.LoadFromXml(loadFileName); // Можно также сделать бинарную загрузку
-                editor = new TextFileEditor(textFile);
-            }
-            else if (choice == "4")
-            {
-                editor.Undo();
-                Console.WriteLine("Изменения отменены. Текущий текст: " + editor.GetFile().Content);
-            }
-            else if (choice == "5")
-            {
-                break;
+                Console.WriteLine($"Произошла ошибка: {ex.Message}");
             }
         }
     }
-}
+}                                                                                               
